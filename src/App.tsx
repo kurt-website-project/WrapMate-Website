@@ -15,9 +15,11 @@ import "./App.css";
 import Dashboard from "./pages/dashboard";
 import Login from "./pages/login";
 import Orders from "./pages/orders";
+import Records from "./pages/records";
 import { currentUser, logout, type WrapMateUser } from "./auth/auth";
-import { Home, Package } from "lucide-react";
+import { Home, Package, ClipboardList } from "lucide-react";
 import { Layout } from "./components/refine-ui/layout/layout";
+import { OrdersProvider } from "./providers/orders-store";
 
 
 function AuthenticatedApp({ user, setUser }: {
@@ -36,6 +38,7 @@ function AuthenticatedApp({ user, setUser }: {
     <RefineKbarProvider>
       <ThemeProvider>
         <DevtoolsProvider>
+          <OrdersProvider>
           <Refine
             dataProvider={dataProvider}
             notificationProvider={useNotificationProvider()}
@@ -56,26 +59,27 @@ function AuthenticatedApp({ user, setUser }: {
                 list: "/orders",
                 meta: { label: "Order Queue", icon: <Package /> },
               },
+              {
+                name: "records",
+                list: "/records",
+                meta: { label: "Records", icon: <ClipboardList /> },
+              },
             ]}
           >
             <Routes>
               <Route
                 element={
-                  <Layout>
-                    <div className="wrapmate-user-bar">
-                      <span>
-                        Logged in as <strong>{user.username}</strong> ({user.role})
-                      </span>
-                      <button type="button" onClick={handleLogout}>
-                        Log out
-                      </button>
-                    </div>
+                  <Layout
+                    user={{ username: user.username, role: user.role }}
+                    onLogout={handleLogout}
+                  >
                     <Outlet />
                   </Layout>
                 }
               >
                 <Route index element={<Dashboard />} />
                 <Route path="/orders" element={<Orders />} />
+                <Route path="/records" element={<Records />} />
               </Route>
             </Routes>
 
@@ -84,6 +88,7 @@ function AuthenticatedApp({ user, setUser }: {
             <UnsavedChangesNotifier />
             <DocumentTitleHandler />
           </Refine>
+          </OrdersProvider>
           <DevtoolsPanel />
         </DevtoolsProvider>
       </ThemeProvider>

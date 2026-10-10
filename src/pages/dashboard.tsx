@@ -1,271 +1,138 @@
-import { Package, Clock3, LoaderCircle, CheckCircle2, Plus, ArrowRight } from "lucide-react";
+import { Package, Clock3, CheckCircle2, ArrowRight } from "lucide-react";
+import { useCan } from "@refinedev/core";
 import { useNavigate } from "react-router";
+import { useMemo } from "react";
+import { calculateWrapLength } from "@/lib/orders";
+import { useOrders } from "@/providers/orders-store";
 
-export default function Dashboard() {
+export const Dashboard = () => {
   const navigate = useNavigate();
+  const { orders } = useOrders();
 
-  // Sample dashboard data for now.
-  // These can later be connected to your backend/database.
-  const stats = {
-    totalOrders: 24,
-    pending: 8,
-    processing: 5,
-    completed: 11,
-  };
+  const { data: canCreate } = useCan({
+    resource: "orders",
+    action: "create",
+  });
 
-  const recentActivity = [
-    {
-      id: "WM-003",
-      message: "Order completed",
-      customer: "Sample Store",
-      time: "10 minutes ago",
-      type: "completed",
-    },
-    {
-      id: "WM-002",
-      message: "Order is processing",
-      customer: "LMJT Shop",
-      time: "25 minutes ago",
-      type: "processing",
-    },
-    {
-      id: "WM-004",
-      message: "New order added",
-      customer: "New Customer",
-      time: "1 hour ago",
-      type: "new",
-    },
-  ];
+  const pending = useMemo(
+    () => orders.filter((order) => order.status === "Pending"),
+    [orders]
+  );
+  const processingCount = orders.filter(
+    (order) => order.status === "Processing"
+  ).length;
+  const completedCount = orders.filter(
+    (order) => order.status === "Completed"
+  ).length;
 
   return (
     <div className="wrapmate-dashboard">
-      {/* Welcome Section */}
-      <section className="dashboard-welcome">
+      <div className="wrapmate-dashboard-heading">
         <div>
-          <p className="dashboard-eyebrow">WrapMate Dashboard</p>
-          <h1>Welcome back!</h1>
-          <p>
-            Here's an overview of your packaging operations today.
+          <p className="wrapmate-eyebrow">Packaging management</p>
+          <h1>Order Queue</h1>
+          <p className="wrapmate-muted">
+            Manage incoming packaging orders and prepare them for processing.
           </p>
         </div>
-      </section>
 
-      {/* Statistics */}
-      <section className="dashboard-stats">
-        <div className="dashboard-stat-card">
-          <div className="dashboard-stat-icon">
-            <Package />
+        {canCreate?.can && (
+          <button
+            className="wrapmate-primary-button wm-icon-button"
+            onClick={() => navigate("/orders")}
+          >
+            Add order
+            <ArrowRight size={16} />
+          </button>
+        )}
+      </div>
+
+      <div className="wrapmate-stat-grid">
+        <div className="wrapmate-stat-card">
+          <div className="wrapmate-stat-icon">
+            <Package size={20} />
           </div>
           <div>
-            <span>Total Orders</span>
-            <strong>{stats.totalOrders}</strong>
-            <small>All recorded orders</small>
+            <span>Pending orders</span>
+            <strong>{pending.length}</strong>
           </div>
         </div>
 
-        <div className="dashboard-stat-card">
-          <div className="dashboard-stat-icon">
-            <Clock3 />
-          </div>
-          <div>
-            <span>Pending</span>
-            <strong>{stats.pending}</strong>
-            <small>Needs attention</small>
-          </div>
-        </div>
-
-        <div className="dashboard-stat-card">
-          <div className="dashboard-stat-icon">
-            <LoaderCircle />
+        <div className="wrapmate-stat-card">
+          <div className="wrapmate-stat-icon">
+            <Clock3 size={20} />
           </div>
           <div>
             <span>Processing</span>
-            <strong>{stats.processing}</strong>
-            <small>Currently in progress</small>
+            <strong>{processingCount}</strong>
           </div>
         </div>
 
-        <div className="dashboard-stat-card">
-          <div className="dashboard-stat-icon">
-            <CheckCircle2 />
+        <div className="wrapmate-stat-card">
+          <div className="wrapmate-stat-icon">
+            <CheckCircle2 size={20} />
           </div>
           <div>
             <span>Completed</span>
-            <strong>{stats.completed}</strong>
-            <small>Successfully processed</small>
+            <strong>{completedCount}</strong>
           </div>
         </div>
-      </section>
+      </div>
 
-      {/* Quick Actions */}
-      <section className="dashboard-section">
-        <div className="dashboard-section-heading">
+      <section className="wrapmate-queue-card">
+        <div className="wrapmate-section-heading">
           <div>
-            <h2>Quick Actions</h2>
-            <p>Access commonly used WrapMate features.</p>
+            <h2>Pending orders</h2>
+            <p className="wrapmate-muted">
+              Orders waiting to be processed.
+            </p>
           </div>
+          <span className="wrapmate-status-badge">
+            {pending.length} pending
+          </span>
         </div>
 
-        <div className="dashboard-actions">
-          <button
-            type="button"
-            className="dashboard-action-card primary"
-            onClick={() => navigate("/orders")}
-          >
-            <div className="dashboard-action-icon">
-              <Plus />
-            </div>
-
-            <div>
-              <strong>Manage Orders</strong>
-              <span>View and process packaging orders</span>
-            </div>
-
-            <ArrowRight className="dashboard-action-arrow" />
-          </button>
-
-          <button
-            type="button"
-            className="dashboard-action-card"
-            onClick={() => navigate("/orders")}
-          >
-            <div className="dashboard-action-icon">
-              <Package />
-            </div>
-
-            <div>
-              <strong>Order Queue</strong>
-              <span>Check pending and active orders</span>
-            </div>
-
-            <ArrowRight className="dashboard-action-arrow" />
-          </button>
-        </div>
-      </section>
-
-      {/* Packaging Overview */}
-      <section className="dashboard-grid">
-        <div className="dashboard-panel">
-          <div className="dashboard-panel-header">
-            <div>
-              <h2>Packaging Overview</h2>
-              <p>Today's packaging activity.</p>
-            </div>
+        {pending.length > 0 ? (
+          <div className="wm-pending-list">
+            {pending.map((order) => (
+              <button
+                key={order.id}
+                className="wm-pending-row"
+                onClick={() => navigate("/orders")}
+              >
+                <div className="wm-pending-main">
+                  <strong>{order.id}</strong>
+                  <span>{order.item}</span>
+                </div>
+                <div className="wm-pending-meta">
+                  <span>
+                    {order.width} x {order.height} cm · P
+                    {order.protection.toFixed(1)}
+                  </span>
+                  <span className="wm-pending-length">
+                    L ={" "}
+                    {calculateWrapLength(
+                      order.width,
+                      order.height,
+                      order.protection
+                    )}{" "}
+                    cm
+                  </span>
+                </div>
+                <ArrowRight size={16} className="wm-pending-arrow" />
+              </button>
+            ))}
           </div>
-
-          <div className="packaging-overview">
-            <div className="overview-row">
-              <span>Orders Today</span>
-              <strong>12</strong>
-            </div>
-
-            <div className="overview-row">
-              <span>Bubble Wrap Used</span>
-              <strong>245 cm</strong>
-            </div>
-
-            <div className="overview-row">
-              <span>Orders Completed</span>
-              <strong>8</strong>
-            </div>
-
-            <div className="overview-row">
-              <span>Average Wrap Length</span>
-              <strong>20.4 cm</strong>
-            </div>
+        ) : (
+          <div className="wrapmate-empty-state">
+            <Package size={36} />
+            <h3>No pending orders yet</h3>
+            <p>The order queue is ready.</p>
           </div>
-        </div>
-
-        <div className="dashboard-panel">
-          <div className="dashboard-panel-header">
-            <div>
-              <h2>Today's Status</h2>
-              <p>Current order distribution.</p>
-            </div>
-          </div>
-
-          <div className="status-overview">
-            <div className="status-row">
-              <div>
-                <span>Completed</span>
-                <strong>67%</strong>
-              </div>
-              <div className="status-bar">
-                <div
-                  className="status-bar-fill completed"
-                  style={{ width: "67%" }}
-                />
-              </div>
-            </div>
-
-            <div className="status-row">
-              <div>
-                <span>Processing</span>
-                <strong>21%</strong>
-              </div>
-              <div className="status-bar">
-                <div
-                  className="status-bar-fill processing"
-                  style={{ width: "21%" }}
-                />
-              </div>
-            </div>
-
-            <div className="status-row">
-              <div>
-                <span>Pending</span>
-                <strong>12%</strong>
-              </div>
-              <div className="status-bar">
-                <div
-                  className="status-bar-fill pending"
-                  style={{ width: "12%" }}
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Recent Activity */}
-      <section className="dashboard-section">
-        <div className="dashboard-section-heading dashboard-activity-heading">
-          <div>
-            <h2>Recent Activity</h2>
-            <p>Latest updates from your packaging operations.</p>
-          </div>
-
-          <button
-            type="button"
-            className="dashboard-view-button"
-            onClick={() => navigate("/orders")}
-          >
-            View all orders
-            <ArrowRight />
-          </button>
-        </div>
-
-        <div className="dashboard-activity-list">
-          {recentActivity.map((activity) => (
-            <div className="dashboard-activity-item" key={activity.id}>
-              <div className={`activity-icon ${activity.type}`}>
-                {activity.type === "completed" && <CheckCircle2 />}
-                {activity.type === "processing" && <LoaderCircle />}
-                {activity.type === "new" && <Plus />}
-              </div>
-
-              <div className="activity-content">
-                <strong>{activity.id}</strong>
-                <span>
-                  {activity.message} · {activity.customer}
-                </span>
-              </div>
-
-              <time>{activity.time}</time>
-            </div>
-          ))}
-        </div>
+        )}
       </section>
     </div>
   );
-}
+};
+
+export default Dashboard;

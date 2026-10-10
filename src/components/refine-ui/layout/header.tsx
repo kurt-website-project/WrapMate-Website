@@ -1,18 +1,6 @@
-import {
-  useRefineOptions,
-  useActiveAuthProvider,
-  useLogout,
-} from "@refinedev/core";
-import {
-  DropdownMenu,
-  DropdownMenuItem,
-  DropdownMenuContent,
-} from "@/components/ui/dropdown-menu";
-import { DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { useRefineOptions } from "@refinedev/core";
 import { ThemeToggle } from "@/components/refine-ui/theme/theme-toggle";
-import { UserAvatar } from "@/components/refine-ui/layout/user-avatar";
 import { useSidebar, SidebarTrigger } from "@/components/ui/sidebar";
-import { LogOutIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export const Header = () => {
@@ -41,7 +29,6 @@ function DesktopHeader() {
       )}
     >
       <ThemeToggle />
-      <UserDropdown />
     </header>
   );
 }
@@ -116,38 +103,6 @@ function MobileHeader() {
     </header>
   );
 }
-
-const UserDropdown = () => {
-  const { mutate: logout, isPending: isLoggingOut } = useLogout();
-
-  const authProvider = useActiveAuthProvider();
-
-  if (!authProvider?.getIdentity) {
-    return null;
-  }
-
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger>
-        <UserAvatar />
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuItem
-          onClick={() => {
-            logout();
-          }}
-        >
-          <LogOutIcon
-            className={cn("text-destructive", "hover:text-destructive")}
-          />
-          <span className={cn("text-destructive", "hover:text-destructive")}>
-            {isLoggingOut ? "Logging out..." : "Logout"}
-          </span>
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
-};
 
 Header.displayName = "Header";
 MobileHeader.displayName = "MobileHeader";
