@@ -12,6 +12,7 @@ import {
   Sidebar as ShadcnSidebar,
   SidebarContent as ShadcnSidebarContent,
   SidebarHeader as ShadcnSidebarHeader,
+  SidebarFooter as ShadcnSidebarFooter,
   useSidebar as useShadcnSidebar,
   SidebarTrigger as ShadcnSidebarTrigger,
 } from "@/components/ui/sidebar";
@@ -27,10 +28,20 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { Button } from "@/components/ui/button";
-import { ChevronRight, ListIcon } from "lucide-react";
+import { ChevronRight, ListIcon, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export function Sidebar() {
+export type SidebarUser = {
+  username: string;
+  role: string;
+};
+
+type SidebarProps = {
+  user?: SidebarUser;
+  onLogout?: () => void;
+};
+
+export function Sidebar({ user, onLogout }: SidebarProps) {
   const { open } = useShadcnSidebar();
   const { menuItems, selectedKey } = useMenu();
 
@@ -63,7 +74,81 @@ export function Sidebar() {
           />
         ))}
       </ShadcnSidebarContent>
+
+      {user && (
+        <SidebarUserFooter user={user} onLogout={onLogout} />
+      )}
     </ShadcnSidebar>
+  );
+}
+
+function SidebarUserFooter({ user, onLogout }: SidebarProps) {
+  const { open } = useShadcnSidebar();
+
+  if (!user) {
+    return null;
+  }
+
+  const initials = user.username.slice(0, 2).toUpperCase();
+
+  return (
+    <ShadcnSidebarFooter
+      className={cn("border-r", "border-t", "border-border", "gap-2", {
+        "px-3 py-3": open,
+        "px-1 py-2 items-center": !open,
+      })}
+    >
+      <div
+        className={cn("flex", "items-center", "gap-2", "min-w-0", {
+          "justify-center": !open,
+        })}
+      >
+        <div
+          className={cn(
+            "flex",
+            "h-8",
+            "w-8",
+            "shrink-0",
+            "items-center",
+            "justify-center",
+            "rounded-full",
+            "bg-sidebar-primary",
+            "text-xs",
+            "font-semibold",
+            "text-sidebar-primary-foreground"
+          )}
+        >
+          {initials}
+        </div>
+        {open && (
+          <div className={cn("flex", "flex-col", "min-w-0", "leading-tight")}>
+            <span
+              className={cn("truncate", "text-sm", "font-semibold", "text-foreground")}
+            >
+              {user.username}
+            </span>
+            <span
+              className={cn("truncate", "text-xs", "capitalize", "text-muted-foreground")}
+            >
+              {user.role}
+            </span>
+          </div>
+        )}
+      </div>
+
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={onLogout}
+        className={cn("w-full", "justify-center", "gap-2", {
+          "!px-0": !open,
+        })}
+        aria-label="Log out"
+      >
+        <LogOut className={cn("h-4", "w-4")} />
+        {open && <span>Log out</span>}
+      </Button>
+    </ShadcnSidebarFooter>
   );
 }
 

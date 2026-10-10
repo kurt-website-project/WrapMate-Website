@@ -5,13 +5,18 @@ import { ThemeProvider } from "@/components/refine-ui/theme/theme-provider";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 import type { PropsWithChildren } from "react";
-import { Sidebar } from "./sidebar";
+import { Sidebar, type SidebarUser } from "./sidebar";
 
-export function Layout({ children }: PropsWithChildren) {
+type LayoutProps = PropsWithChildren<{
+  user?: SidebarUser;
+  onLogout?: () => void;
+}>;
+
+export function Layout({ children, user, onLogout }: LayoutProps) {
   return (
     <ThemeProvider>
       <SidebarProvider>
-        <Sidebar />
+        <Sidebar user={user} onLogout={onLogout} />
         <SidebarInset>
           <Header />
           <main

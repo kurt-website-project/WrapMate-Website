@@ -1,115 +1,66 @@
 import { useMemo, useState } from "react";
-
-type OrderStatus = "Pending" | "Processing" | "Completed";
-
-type Order = {
-  id: string;
-  customer: string;
-  item: string;
-  quantity: number;
-  status: OrderStatus;
-  date: string;
-};
-
-const initialOrders: Order[] = [
-  {
-    id: "WM-001",
-    customer: "Sample Customer 1",
-    item: "Mug",
-    quantity: 10,
-    status: "Pending",
-    date: "2026-10-07",
-  },
-  {
-    id: "WM-002",
-    customer: "Sample Customer 2",
-    item: "Plate",
-    quantity: 25,
-    status: "Processing",
-    date: "2026-10-07",
-  },
-  {
-    id: "WM-003",
-    customer: "Sample Customer 3",
-    item: "Vase",
-    quantity: 15,
-    status: "Completed",
-    date: "2026-10-06",
-  },
-];
+import { calculateWrapLength, type OrderStatus } from "@/lib/orders";
+import { useOrders } from "@/providers/orders-store";
+import { AddOrderDialog } from "@/components/add-order-dialog";
+import { Plus } from "lucide-react";
 
 export default function Orders() {
-  const [orders, setOrders] = useState<Order[]>(initialOrders);
+  const { orders, updateStatus } = useOrders();
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"All" | OrderStatus>("All");
+  const [isAddOpen, setIsAddOpen] = useState(false);
 
   const filteredOrders = useMemo(() => {
+    const query = search.toLowerCase();
     return orders.filter((order) => {
       const matchesSearch =
-        order.id.toLowerCase().includes(search.toLowerCase()) ||
-        order.customer.toLowerCase().includes(search.toLowerCase()) ||
-        order.item.toLowerCase().includes(search.toLowerCase());
+        order.id.toLowerCase().includes(query) ||
+        order.sku.toLowerCase().includes(query) ||
+        order.item.toLowerCase().includes(query);
 
-      const matchesFilter =
-        filter === "All" || order.status === filter;
+      const matchesFilter = filter === "All" || order.status === filter;
 
       return matchesSearch && matchesFilter;
     });
   }, [orders, search, filter]);
 
-  function updateStatus(id: string, status: OrderStatus) {
-    setOrders((currentOrders) =>
-      currentOrders.map((order) =>
-        order.id === id
-          ? { ...order, status }
-          : order
-      )
-    );
-  }
-
-  const pendingCount = orders.filter(
-    (order) => order.status === "Pending"
-  ).length;
-
-  const processingCount = orders.filter(
-    (order) => order.status === "Processing"
-  ).length;
-
-  const completedCount = orders.filter(
-    (order) => order.status === "Completed"
-  ).length;
+  const pendingCount = orders.filter((o) => o.status === "Pending").length;
+  const processingCount = orders.filter((o) => o.status === "Processing").length;
+  const completedCount = orders.filter((o) => o.status === "Completed").length;
 
   return (
     <div className="orders-page">
       <div className="orders-header">
         <div>
+          <p className="wrapmate-eyebrow">Packaging management</p>
           <h1>Order Queue</h1>
-          <p>
+          <p className="wrapmate-muted">
             Manage and monitor your bubble wrap packaging orders.
           </p>
         </div>
 
-        <button className="add-order-button">
-          + Add Order
+        <button
+          className="wrapmate-primary-button wm-icon-button"
+          onClick={() => setIsAddOpen(true)}
+        >
+          <Plus size={16} />
+          Add order
         </button>
       </div>
 
       <div className="order-stats">
         <div className="order-stat">
-          <span>All Orders</span>
+          <span>All orders</span>
           <strong>{orders.length}</strong>
         </div>
-
         <div className="order-stat">
           <span>Pending</span>
           <strong>{pendingCount}</strong>
         </div>
-
         <div className="order-stat">
           <span>Processing</span>
           <strong>{processingCount}</strong>
         </div>
-
         <div className="order-stat">
           <span>Completed</span>
           <strong>{completedCount}</strong>
@@ -120,26 +71,20 @@ export default function Orders() {
         <div className="orders-toolbar">
           <input
             type="text"
-            placeholder="Search order, customer, or item..."
+            placeholder="Search order, SKU, or item..."
             value={search}
             onChange={(event) => setSearch(event.target.value)}
           />
 
           <div className="order-filters">
-            {["All", "Pending", "Processing", "Completed"].map(
+            {(["All", "Pending", "Processing", "Completed"] as const).map(
               (status) => (
                 <button
                   key={status}
                   className={
-                    filter === status
-                      ? "filter-button active"
-                      : "filter-button"
+                    filter === status ? "filter-button active" : "filter-button"
                   }
-                  onClick={() =>
-                    setFilter(
-                      status as "All" | OrderStatus
-                    )
-                  }
+                  onClick={() => setFilter(status)}
                 >
                   {status}
                 </button>
@@ -153,9 +98,12 @@ export default function Orders() {
             <thead>
               <tr>
                 <th>Order ID</th>
-                <th>Customer</th>
-                <th>Item</th>
-                <th>Quantity</th>
+                <th>SKU / Item</th>
+                <th className="wm-num">W (cm)</th>
+                <th className="wm-num">H (cm)</th>
+                <th className="wm-num">Protection (P)</th>
+                <th className="wm-num">Wrap length L (cm)</th>
+                <th className="wm-num">Qty</th>
                 <th>Status</th>
                 <th>Date</th>
               </tr>
@@ -168,13 +116,25 @@ export default function Orders() {
                     <td>
                       <strong>{order.id}</strong>
                     </td>
-
-                    <td>{order.customer}</td>
-
-                    <td>{order.item}</td>
-
-                    <td>{order.quantity}</td>
-
+                    <td>
+                      <div className="wm-sku-cell">
+                        <span className="wm-sku-name">{order.item}</span>
+                        <span className="wm-sku-code">{order.sku}</span>
+                      </div>
+                    </td>
+                    <td className="wm-num">{order.width}</td>
+                    <td className="wm-num">{order.height}</td>
+                    <td className="wm-num">{order.protection.toFixed(1)}</td>
+                    <td className="wm-num">
+                      <strong>
+                        {calculateWrapLength(
+                          order.width,
+                          order.height,
+                          order.protection
+                        )}
+                      </strong>
+                    </td>
+                    <td className="wm-num">{order.quantity}</td>
                     <td>
                       <select
                         className={`status-select ${order.status.toLowerCase()}`}
@@ -186,27 +146,17 @@ export default function Orders() {
                           )
                         }
                       >
-                        <option value="Pending">
-                          Pending
-                        </option>
-                        <option value="Processing">
-                          Processing
-                        </option>
-                        <option value="Completed">
-                          Completed
-                        </option>
+                        <option value="Pending">Pending</option>
+                        <option value="Processing">Processing</option>
+                        <option value="Completed">Completed</option>
                       </select>
                     </td>
-
                     <td>{order.date}</td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td
-                    colSpan={6}
-                    className="empty-orders"
-                  >
+                  <td colSpan={9} className="empty-orders">
                     No orders found.
                   </td>
                 </tr>
@@ -215,6 +165,8 @@ export default function Orders() {
           </table>
         </div>
       </div>
+
+      <AddOrderDialog open={isAddOpen} onClose={() => setIsAddOpen(false)} />
     </div>
   );
 }
